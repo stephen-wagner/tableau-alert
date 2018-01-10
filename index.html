@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Weekly Superstore Sales</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <script type="text/javascript" src="https://public.tableau.com/javascripts/api/tableau-2.min.js"></script>
+	<script type="text/javascript" src="jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="bootbox.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+    <style>
+		@import url('https://fonts.googleapis.com/css?family=Lato:300,400,700');
+		* {
+		 font-size: 100%;
+		 font-family: Lato;
+		}
+      html, body {
+        height: 1000px;
+        width: 1200px;
+        padding: 0;
+        margin: auto;
+        align-content: left;
+      }
+    </style>
+    <script type="text/javascript">
+        var viz;
+        
+        function initViz() {
+            var containerDiv = document.getElementById("vizContainer"),
+                url = "https://public.tableau.com/views/WeeklySuperstoreSales/WeeklySuperstoreSales?:embed=y&:display_count=no&publish=yes",
+                options = {
+                    "Weekly Superstore Sales": "",
+                    hideTabs: true,
+                    hideToolbar: true,
+                    onFirstInteractive: function () {
+                        listenToMarksSelection();
+                    }
+                };
+            
+            viz = new tableau.Viz(containerDiv, url, options);
+        }
+
+        function listenToMarksSelection() {
+            viz.addEventListener(tableau.TableauEventName.MARKS_SELECTION, onMarksSelection);
+        }
+
+        function onMarksSelection(marksEvent) {
+            
+            function markBool (result) {
+            	result.length > 0 ? msgPrompt(result) : ''
+            }
+
+            return marksEvent.getMarksAsync().then(markBool);
+
+        }
+
+        function reportSelectedMarks(marks) {
+            var marksArray = []; 
+            
+            for (var markIndex = 0; markIndex < marks.length; markIndex++) {
+                var pairs = marks[markIndex].getPairs();
+                
+                for (var pairIndex = 0; pairIndex < pairs.length; pairIndex++) {
+                    var pair = pairs[pairIndex];
+					marksArray.push(`${pair.formattedValue} : ${pair.fieldName}`);
+                }
+                
+            }
+
+            return marksArray.join("\n");
+        }
+
+        function msgPrompt(marks) {
+            marksTxt = reportSelectedMarks(marks)
+        	bootbox.prompt({
+			    title: "Enter Message Text",
+                inputType: 'textarea',
+				buttons: {
+					cancel: {
+						label: '<i class="fa fa-times"></i> Discard'
+					},
+					confirm: {
+						label: '<i class="fa fa-check"></i> Send'
+					}
+				},
+			    callback: function (result) {
+			    	if (result) {
+			    		sendSMS(result, marksTxt)
+			    	}
+			    }
+			});
+        }
+        // Send SMS
+        function sendSMS(result, marks) {
+        	var msgBody = result + '\n\n' + marks
+
+        	var alert = {
+        		accountSID: 'placeholder',
+        		authToken: 'placeholder',
+        		from: '+15555555555', // Add the Twilio phone number
+        		to: '5555555555', // Add the phone number here
+        		media: 'https://public.tableau.com/views/WeeklySuperstoreSales/WeeklySuperstoreSales?%3Aembed=y&%3AshowVizHome=no&%3Adisplay_count=y&%3Adisplay_static_image=y&%3AbootstrapWhenNotified=true&%3Aformat=png',
+        		body: msgBody
+        	}
+
+        	var settings = {
+			  "async": true,
+			  "crossDomain": true,
+			  "url": "https://api.twilio.com/2010-04-01/Accounts/AC69b2c7a3dd52cdfdfaded92698898e4e/Messages.json",
+			  "method": "POST",
+			  "headers": {
+			    "authorization": "Basic QUM2OWIyYzdhM2RkNTJjZGZkZmFkZWQ5MjY5ODg5OGU0ZTplOGQxOTZkNGE0M2M3YjQwOTc1ZTllMjhjOWFlNzBjNg==",
+			    "content-type": "application/x-www-form-urlencoded"
+			  },
+			  "data": {
+			    "To": alert.to,
+			    "From": alert.from,
+			    "Body": alert.body,
+			    "MediaUrl": alert.media 
+			  }
+			}
+
+			$.ajax(settings)
+				.done(function (response) {
+			  		console.log(response);
+				});
+        }
+    </script>
+  </head>
+  <body>
+    <body onload="initViz();">
+    <div id="vizContainer"></div>
+</body>
+</html>
